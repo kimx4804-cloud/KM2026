@@ -3,78 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FCAS ODA M&E Dashboard</title>
+    <title>ODA M&E Dashboard - Fragile States</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7f6; }
-        header { background: #2c3e50; color: white; padding: 1rem; text-align: center; }
-        .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
-        .indicator-list { list-style: none; padding: 0; }
-        .indicator-list li { padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9rem; }
-        .status-red { color: #e74c3c; font-weight: bold; }
+        :root { --primary: #2c3e50; --secondary: #3498db; --danger: #e74c3c; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7f6; color: #333; }
+        header { background: var(--primary); color: white; padding: 2rem; text-align: center; }
+        .control-panel { background: #ecf0f1; padding: 15px; text-align: center; sticky: top; }
+        select { padding: 10px; width: 250px; border-radius: 5px; border: 1px solid #bdc3c7; font-size: 1rem; }
+        .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { color: var(--primary); font-size: 1.2rem; border-left: 4px solid var(--secondary); padding-left: 10px; }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .stat-item { background: #f8f9fa; padding: 10px; border-radius: 8px; text-align: center; }
+        .stat-value { display: block; font-size: 1.5rem; font-weight: bold; color: var(--secondary); }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>Conflict-Sensitive ODA M&E System</h1>
-    <p>분쟁취약국 성과관리 및 상황 모니터링 대시보드</p>
+    <h1>Conflict-Sensitive ODA M&E</h1>
+    <p>분쟁취약국 통합 성과관리 시스템</p>
 </header>
+
+<div class="control-panel">
+    <label for="countrySelect"><strong>대상 국가 선택: </strong></label>
+    <select id="countrySelect" onchange="updateDashboard()">
+        <option value="Burundi">Burundi (부룬디)</option>
+        <option value="CAR">Central African Republic (중앙아프리카공화국)</option>
+        <option value="Comoros">Comoros (코모로)</option>
+        <option value="Guinea">Guinea (기니)</option>
+        <option value="Kenya">Kenya (케냐)</option>
+        <option value="Mali">Mali (말리)</option>
+        <option value="STP">Sao Tome and Principe (상투메 프린시페)</option>
+        <option value="Somalia">Somalia (소말리아)</option>
+        <option value="SouthSudan">South Sudan (남수단)</option>
+        <option value="Zimbabwe">Zimbabwe (짐바브웨)</option>
+        <option value="Armenia">Armenia (아르메니아)</option>
+        <option value="Iran">Iran (이란)</option>
+        <option value="Jordan">Jordan (요르단)</option>
+        <option value="Lebanon">Lebanon (레바논)</option>
+        <option value="Palestine">Palestine (팔레스타인)</option>
+        <option value="Syria">Syria (시리아)</option>
+        <option value="Yemen">Yemen (예멘)</option>
+        <option value="PNG">Papua New Guinea (파푸아뉴기니)</option>
+        <option value="Solomon">Solomon Islands (솔로몬제도)</option>
+        <option value="Timor">Timor-Leste (동티모르)</option>
+    </select>
+</div>
 
 <div class="container">
     <div class="card">
-        <h2>Local Conflict Trends (ACLED)</h2>
+        <h2>Conflict Trends (Monthly)</h2>
         <canvas id="conflictChart"></canvas>
     </div>
 
     <div class="card">
-        <h2>Key Conflict Indicators</h2>
-        <ul class="indicator-list">
-            <li><strong>사회적 결속도:</strong> 지역사회 내 신뢰 지수 <span class="status-red">주의 (45%)</span></li>
-            <li><strong>자원 접근성:</strong> 소외 계층의 용수/식량 접근율 <strong>62%</strong></li>
-            <li><strong>치안 상황:</strong> 사업지 반경 10km 내 교전 횟수 (월간) <strong>3건</strong></li>
-            <li><strong>정부 신뢰도:</strong> 행정 서비스 만족도 <strong>30%</strong></li>
-        </ul>
+        <h2>Key Vulnerability Stats</h2>
+        <div class="stat-grid">
+            <div class="stat-item">신뢰 지수 <span id="trustVal" class="stat-value">-%</span></div>
+            <div class="stat-item">위험 수준 <span id="riskVal" class="stat-value">-</span></div>
+        </div>
+        <p style="margin-top:20px; font-size:0.9rem; color:#666;">*데이터 소스: ACLED, World Bank Context Analysis</p>
     </div>
 
     <div class="card">
-        <h2>Beneficiary Perception Survey</h2>
-        <canvas id="perceptionChart"></canvas>
+        <h2>Project Perception Analysis</h2>
+        <canvas id="radarChart"></canvas>
     </div>
 </div>
 
 <script>
-    // 분쟁 동향 차트
-    const ctx1 = document.getElementById('conflictChart').getContext('2d');
-    new Chart(ctx1, {
-        type: 'line',
-        data: {
-            labels: ['1월', '2월', '3월', '4월', '5월', '6월'],
-            datasets: [{
-                label: '무력 충돌 발생 건수',
-                data: [12, 19, 3, 5, 2, 13],
-                borderColor: '#e74c3c',
-                fill: false
-            }]
-        }
-    });
+    // 가상 데이터베이스 (실제 데이터로 교체 가능)
+    const countryData = {
+        "Burundi": { conflict: [5, 10, 8, 15, 7, 12], trust: 42, risk: "High", radar: [40, 50, 60, 30, 45] },
+        "SouthSudan": { conflict: [20, 35, 25, 45, 30, 55], trust: 15, risk: "Extreme", radar: [20, 30, 40, 10, 25] },
+        "Jordan": { conflict: [2, 1, 3, 2, 1, 4], trust: 75, risk: "Moderate", radar: [80, 70, 85, 90, 75] },
+        "Syria": { conflict: [50, 45, 60, 55, 70, 65], trust: 10, risk: "Critical", radar: [15, 20, 30, 25, 20] }
+        // ... 나머지 국가 데이터도 유사한 형식으로 추가 가능
+    };
 
-    // 인식 조사 차트
-    const ctx2 = document.getElementById('perceptionChart').getContext('2d');
-    new Chart(ctx2, {
-        type: 'radar',
-        data: {
-            labels: ['안전성', '공정성', '투명성', '참여도', '지속성'],
-            datasets: [{
-                label: '현재 사업 평가',
-                data: [65, 59, 90, 81, 56],
-                backgroundColor: 'rgba(52, 152, 219, 0.2)',
-                borderColor: '#3498db'
-            }]
-        }
-    });
+    let lineChart, radarChart;
+
+    function initCharts() {
+        const ctxLine = document.getElementById('conflictChart').getContext('2d');
+        lineChart = new Chart(ctxLine, {
+            type: 'line',
+            data: { labels: ['1월','2월','3월','4월','5월','6월'], datasets: [{ label: '분쟁 건수', borderColor: '#e74c3c', data: [] }] }
+        });
+
+        const ctxRadar = document.getElementById('radarChart').getContext('2d');
+        radarChart = new Chart(ctxRadar, {
+            type: 'radar',
+            data: {
+                labels: ['안전', '공정', '투명', '참여', '지속'],
+                datasets: [{ label: '수혜자 인식', borderColor: '#3498db', backgroundColor: 'rgba(52,152,219,0.2)', data: [] }]
+            }
+        });
+        updateDashboard(); // 초기 실행
+    }
+
+    function updateDashboard() {
+        const selected = document.getElementById('countrySelect').value;
+        const data = countryData[selected] || { conflict: [0,0,0,0,0,0], trust: 0, risk: "No Data", radar: [0,0,0,0,0] };
+
+        // 텍스트 업데이트
+        document.getElementById('trustVal').innerText = data.trust + "%";
+        document.getElementById('riskVal').innerText = data.risk;
+        document.getElementById('riskVal').style.color = (data.risk === "Extreme" || data.risk === "Critical") ? "#e74c3c" : "#2c3e50";
+
+        // 차트 업데이트
+        lineChart.data.datasets[0].data = data.conflict;
+        lineChart.update();
+
+        radarChart.data.datasets[0].data = data.radar;
+        radarChart.update();
+    }
+
+    window.onload = initCharts;
 </script>
 
 </body>
