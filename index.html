@@ -2,140 +2,58 @@
 <html lang="ko">
 <head>
     <meta charset="utf-8"/>
-    <title>Ewha RECAP - Global M&E Dashboard</title>
+    <title>Ewha RECAP - Emergency Data Recovery</title>
     <style>
-        :root { --bg: #0b0f14; --fg: #e6eef8; --primary: #2ea043; --line: #253245; --h: #3aa3ff; --d: #61d661; --p: #f2b45a; --danger: #ff5c5c; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--fg); margin: 0; padding: 20px; }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--primary); padding-bottom: 15px; }
-        .team-name { font-size: 24px; font-weight: 900; color: var(--primary); letter-spacing: -1px; }
-        
-        /* 스태츠 영역 */
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0; }
-        .stat-card { background: #161b22; padding: 20px; border-radius: 12px; border: 1px solid var(--line); text-align: center; }
-        .stat-val { font-size: 28px; font-weight: bold; color: var(--primary); margin-top: 5px; }
-
-        /* 테이블 영역 */
-        .table-box { background: #161b22; border-radius: 12px; border: 1px solid var(--line); overflow: hidden; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #21262d; padding: 12px; text-align: left; font-size: 13px; color: #8aa0bb; }
-        td { padding: 12px; border-bottom: 1px solid var(--line); font-size: 13px; vertical-align: middle; }
-
-        /* HDP 배지 */
-        .hdp-badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; margin-right: 4px; color: #000; }
-        .hdp-H { background: var(--h); } .hdp-D { background: var(--d); } .hdp-P { background: var(--p); }
-        .hdp-off { background: #364254; color: #8da0b5; }
-
-        .risk-tag { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; color: #000; }
-        .risk-high { background: var(--danger); } .risk-low { background: #43c174; }
-
-        /* 상태 바 */
-        .log-box { background: #000; color: #00ff00; font-family: monospace; padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 15px; height: 60px; overflow-y: auto; border: 1px solid var(--line); }
-        
-        button { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        button:hover { opacity: 0.8; transform: scale(1.02); }
-        button:disabled { background: #444; cursor: not-allowed; }
+        :root { --bg: #0b1117; --fg: #e6edf3; --primary: #238636; --line: #30363d; --h-col: #3aa3ff; --d-col: #61d661; --p-col: #f2b45a; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--fg); margin: 0; padding: 20px; }
+        .dashboard-header { border-bottom: 2px solid var(--primary); padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .log-box { background: #000; color: #00ff00; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px; height: 100px; overflow-y: auto; margin-bottom: 20px; border: 1px solid var(--line); }
+        .status-tag { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; background: #21262d; border: 1px solid var(--line); }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: #161b22; padding: 15px; border-radius: 10px; border: 1px solid var(--line); text-align: center; }
+        .stat-val { font-size: 24px; font-weight: bold; color: var(--primary); margin-top: 5px; }
+        table { width: 100%; border-collapse: collapse; background: #161b22; border-radius: 10px; overflow: hidden; }
+        th { background: #21262d; padding: 12px; text-align: left; font-size: 13px; color: #8b949e; }
+        td { padding: 12px; border-bottom: 1px solid var(--line); font-size: 13px; }
+        .hdp-badge { display: inline-block; padding: 2px 7px; border-radius: 5px; font-size: 11px; font-weight: 800; margin-right: 4px; color: #000; }
+        .hdp-H { background: var(--h-col); } .hdp-D { background: var(--d-col); } .hdp-P { background: var(--p-col); }
+        .btn-start { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-start:hover { background: #2ea043; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <div class="team-name">Ewha RECAP</div>
-    <button id="syncBtn" onclick="startRecapAnalysis()">데이터 실시간 연동 시작</button>
+<div class="dashboard-header">
+    <h2 style="margin:0;">Ewha RECAP: M&E Monitoring (Recovery Mode)</h2>
+    <div class="status-tag" id="mainStatus">시스템 대기 중</div>
+    <button class="btn-start" onclick="fetchReliefWebData()">데이터 강제 로드</button>
+</div>
+
+<div class="log-box" id="systemLog">
+    [SYSTEM] ReliefWeb API v1/v2 하이브리드 모드 준비됨.<br/>
+    [INFO] Appname: HyunKim+recap_km_lite+a5Ttg7U8 (확인됨)
 </div>
 
 <div class="stats-grid">
-    <div class="stat-card">대상국<div class="stat-val">20</div></div>
-    <div class="stat-card">수집 보고서<div id="count-docs" class="stat-val">0</div></div>
-    <div class="stat-card">분쟁 위기(High)<div id="count-high" class="stat-val" style="color:var(--danger)">0</div></div>
-    <div class="stat-card">평균 Nexus 지수<div id="nexus-val" class="stat-val" style="color:var(--h)">0%</div></div>
+    <div class="stat-card">모니터링 대상<div class="stat-val">20개국</div></div>
+    <div class="stat-card">수집된 보고서<div id="count-docs" class="stat-val">0</div></div>
+    <div class="stat-card">HDP Nexus 강도<div id="nexus-avg" class="stat-val">-%</div></div>
+    <div class="stat-card">위험 국가(High)<div id="risk-count" class="stat-val" style="color:#ff5c5c">0</div></div>
 </div>
 
-<div class="log-box" id="statusLog">시스템 대기 중... '연동 시작'을 클릭하세요.</div>
-
-<div class="table-box">
-    <table>
-        <thead>
-            <tr>
-                <th>국가(ISO)</th>
-                <th>HDP Nexus 구성</th>
-                <th>환경 리스크</th>
-                <th>최신 보고서 분석 (ReliefWeb)</th>
-            </tr>
-        </thead>
-        <tbody id="mainTable">
-            </tbody>
-    </table>
-</div>
+<table>
+    <thead>
+        <tr>
+            <th width="10%">ISO</th>
+            <th width="15%">Nexus (HDP)</th>
+            <th width="10%">Risk</th>
+            <th>최신 보고서 분석 요약</th>
+        </tr>
+    </thead>
+    <tbody id="dataTable">
+        </tbody>
+</table>
 
 <script>
 const APPNAME = "HyunKim+recap_km_lite+a5Ttg7U8";
-const countries = ["SSD", "SYR", "YEM", "MLI", "SOM", "AFG", "CAF", "PSE", "UKR", "COD", "MMR", "ETH", "SDN", "HTI", "NGA", "IRQ", "LBY", "BFA", "NER", "TCD"];
-
-async function startRecapAnalysis() {
-    const btn = document.getElementById('syncBtn');
-    const table = document.getElementById('mainTable');
-    const log = document.getElementById('statusLog');
-    
-    btn.disabled = true;
-    table.innerHTML = "";
-    log.innerHTML = ">>> RECAP 분석 엔진 시동...<br/>";
-
-    let totalDocs = 0;
-    let highCount = 0;
-
-    for (const iso of countries) {
-        log.innerHTML += `> [${iso}] 데이터 요청 중...<br/>`;
-        log.scrollTop = log.scrollHeight;
-
-        try {
-            const url = `https://api.reliefweb.int/v1/reports?appname=${APPNAME}&filter[field]=country.iso3&filter[value]=${iso}&limit=1&profile=full`;
-            const response = await fetch(url);
-            const resData = await response.json();
-
-            if (resData.data && resData.data.length > 0) {
-                const doc = resData.data[0].fields;
-                const title = doc.title;
-                const text = (title + " " + (doc.body || "")).toLowerCase();
-                
-                // HDP 분석
-                const hasH = /humanitarian|emergency|relief|refugee|displacement/.test(text);
-                const hasD = /development|infrastructure|livelihood|sustainability/.test(text);
-                const hasP = /peace|conflict|cohesion|governance|mediation/.test(text);
-                
-                // 리스크 분석
-                const isHigh = /attack|violence|clashes|killed|bombed|insurgent/.test(text);
-                if(isHigh) highCount++;
-                totalDocs += resData.totalCount;
-
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><strong>${iso}</strong></td>
-                    <td>
-                        <span class="hdp-badge ${hasH ? 'hdp-H' : 'hdp-off'}">H</span>
-                        <span class="hdp-badge ${hasD ? 'hdp-D' : 'hdp-off'}">D</span>
-                        <span class="hdp-badge ${hasP ? 'hdp-P' : 'hdp-off'}">P</span>
-                    </td>
-                    <td><span class="risk-tag ${isHigh ? 'risk-high' : 'risk-low'}">${isHigh ? 'HIGH' : 'LOW'}</span></td>
-                    <td>
-                        <div style="font-weight:bold; color:var(--h);">${title}</div>
-                        <div style="font-size:11px; color:#8aa0bb; margin-top:4px;">${doc.source[0].name} | ${doc.date.created.split('T')[0]}</div>
-                    </td>
-                `;
-                table.appendChild(row);
-
-                // 상단 스태츠 갱신
-                document.getElementById('count-docs').innerText = totalDocs.toLocaleString();
-                document.getElementById('count-high').innerText = highCount;
-                document.getElementById('nexus-val').innerText = Math.floor(Math.random()*20 + 70) + "%";
-            }
-        } catch (e) {
-            log.innerHTML += `<span style="color:red;">> [${iso}] 오류 발생: ${e.message}</span><br/>`;
-        }
-    }
-    btn.disabled = false;
-    btn.innerText = "분석 완료 (재동기화)";
-    log.innerHTML += ">>> 모든 국가 분석 완료.";
-}
-</script>
-</body>
-</html>
+const ISO_LIST = ['BDI','CAF','COM','GIN','KEN','MLI','STP','SOM','SSD','ZWE','ARM','IRN','JOR','LBN','PSE','SYR','YEM','PNG','SLB','
