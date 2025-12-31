@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FCAS ODA M&E Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f7f6; }
+        header { background: #2c3e50; color: white; padding: 1rem; text-align: center; }
+        .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        .indicator-list { list-style: none; padding: 0; }
+        .indicator-list li { padding: 8px 0; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+        .status-red { color: #e74c3c; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Conflict-Sensitive ODA M&E System</h1>
+    <p>분쟁취약국 성과관리 및 상황 모니터링 대시보드</p>
+</header>
+
+<div class="container">
+    <div class="card">
+        <h2>Local Conflict Trends (ACLED)</h2>
+        <canvas id="conflictChart"></canvas>
+    </div>
+
+    <div class="card">
+        <h2>Key Conflict Indicators</h2>
+        <ul class="indicator-list">
+            <li><strong>사회적 결속도:</strong> 지역사회 내 신뢰 지수 <span class="status-red">주의 (45%)</span></li>
+            <li><strong>자원 접근성:</strong> 소외 계층의 용수/식량 접근율 <strong>62%</strong></li>
+            <li><strong>치안 상황:</strong> 사업지 반경 10km 내 교전 횟수 (월간) <strong>3건</strong></li>
+            <li><strong>정부 신뢰도:</strong> 행정 서비스 만족도 <strong>30%</strong></li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>Beneficiary Perception Survey</h2>
+        <canvas id="perceptionChart"></canvas>
+    </div>
+</div>
+
+<script>
+    // 분쟁 동향 차트
+    const ctx1 = document.getElementById('conflictChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: ['1월', '2월', '3월', '4월', '5월', '6월'],
+            datasets: [{
+                label: '무력 충돌 발생 건수',
+                data: [12, 19, 3, 5, 2, 13],
+                borderColor: '#e74c3c',
+                fill: false
+            }]
+        }
+    });
+
+    // 인식 조사 차트
+    const ctx2 = document.getElementById('perceptionChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'radar',
+        data: {
+            labels: ['안전성', '공정성', '투명성', '참여도', '지속성'],
+            datasets: [{
+                label: '현재 사업 평가',
+                data: [65, 59, 90, 81, 56],
+                backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                borderColor: '#3498db'
+            }]
+        }
+    });
+</script>
+
+</body>
+</html>
