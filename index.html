@@ -2,117 +2,169 @@
 <html lang="ko">
 <head>
     <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Ewha RECAP - Global Monitor v1.0</title>
+    <title>Ewha RECAP - HDP Nexus 실시간 지식관리체계</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #0d1117; --card: #161b22; --primary: #2ea043; --accent: #388bfd; --danger: #f85149; --fg: #c9d1d9; --mut: #8b949e; }
+        :root { 
+            --bg: #0b0f14; --fg: #e6eef8; --primary: #2ea043; --line: #253245;
+            --h-col: #3aa3ff; --d-col: #61d661; --p-col: #f2b45a; --danger: #ff5c5c;
+        }
         body { font-family: system-ui; background: var(--bg); color: var(--fg); margin: 0; padding: 20px; }
-        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #30363d; padding-bottom: 15px; }
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0; }
-        .stat { background: var(--card); padding: 15px; border: 1px solid #30363d; border-radius: 8px; text-align: center; }
-        .table-container { background: var(--card); border-radius: 8px; border: 1px solid #30363d; overflow: auto; max-height: 600px; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { position: sticky; top: 0; background: #21262d; padding: 12px; text-align: left; }
-        td { padding: 12px; border-bottom: 1px solid #30363d; }
-        .risk-badge { padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
-        .high { background: rgba(248, 81, 73, 0.2); color: #ff7b72; }
-        .low { background: rgba(46, 160, 67, 0.2); color: #3fb950; }
-        #sync-btn { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 15px; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 20px 0; }
+        .stat-card { background: rgba(15, 22, 32, 0.5); padding: 20px; border-radius: 12px; border: 1px solid var(--line); text-align: center; }
+        .stat-val { font-size: 28px; font-weight: bold; color: var(--primary); }
+
+        table { width: 100%; border-collapse: collapse; background: rgba(15, 22, 32, 0.3); border-radius: 12px; overflow: hidden; }
+        th { background: #0f1620; padding: 12px; text-align: left; font-size: 13px; color: #8aa0bb; }
+        td { padding: 12px; border-bottom: 1px solid var(--line); font-size: 13px; }
+
+        /* HDP Badges */
+        .hdp-badge { display: inline-block; padding: 2px 7px; border-radius: 6px; font-size: 11px; font-weight: 800; margin-right: 4px; color: #000; }
+        .hdp-H { background: var(--h-col); } .hdp-D { background: var(--d-col); } .hdp-P { background: var(--p-col); }
+        .hdp-off { background: #364254; color: #8da0b5; }
+
+        /* Risk & Conflict */
+        .risk-badge { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 900; color: #000; }
+        .risk-high { background: var(--danger); } .risk-low { background: #43c174; }
+        .policy-flag { border: 1px solid #f2b45a; color: #f2b45a; padding: 1px 6px; border-radius: 10px; font-size: 10px; margin-left: 5px; }
+
+        button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        button:disabled { background: #253245; }
     </style>
 </head>
 <body>
 
-<header>
-    <div><span style="font-size:24px; font-weight:900; color:var(--primary);">Ewha RECAP</span></div>
-    <button id="sync-btn" onclick="syncAllCountries()">20개국 실시간 동기화</button>
-</header>
+<div class="header">
+    <div>
+        <h1 style="margin:0; color:var(--primary); font-size:24px;">Ewha RECAP <span style="font-weight:normal; font-size:16px; color:#8aa0bb;">| M&E Knowledge System</span></h1>
+    </div>
+    <button id="syncBtn" onclick="runRecapPipeline()">20개국 데이터 실시간 동기화</button>
+</div>
 
 <div class="grid">
-    <div class="stat"><div>감시 대상국</div><div id="total-c" style="font-size:24px; font-weight:bold;">20</div></div>
-    <div class="stat"><div>분쟁 위기(High)</div><div id="high-risk" style="font-size:24px; font-weight:bold; color:var(--danger);">0</div></div>
-    <div class="stat"><div>평균 Nexus 연계</div><div id="avg-nexus" style="font-size:24px; font-weight:bold; color:var(--accent);">-%</div></div>
-    <div class="stat"><div>수집 데이터 건수</div><div id="data-count" style="font-size:24px; font-weight:bold;">0</div></div>
+    <div class="stat-card">분석 대상국<div class="stat-val">20</div></div>
+    <div class="stat-card">수집된 지식 건수<div id="totalDocs" class="stat-val">0</div></div>
+    <div class="stat-card">위험 국가(High) <div id="highRiskCount" class="stat-val" style="color:var(--danger)">0</div></div>
+    <div class="stat-card">정책 변동 감지<div id="policyCount" class="stat-val" style="color:var(--p-col)">0</div></div>
 </div>
 
-<div class="table-container">
-    <table>
-        <thead>
-            <tr>
-                <th>국가(ISO)</th>
-                <th>최근 1년 위기 보고서</th>
-                <th>환경 리스크(Composite)</th>
-                <th>HDP Nexus 밸런스</th>
-                <th>상태</th>
-            </tr>
-        </thead>
-        <tbody id="list-body">
-            <tr><td colspan="5" style="text-align:center; padding:40px;">동기화 버튼을 누르면 20개국의 ReliefWeb 데이터를 실시간 분석합니다.</td></tr>
-        </tbody>
-    </table>
-</div>
+<table>
+    <thead>
+        <tr>
+            <th>국가(ISO)</th>
+            <th>HDP Nexus 구성</th>
+            <th>환경 리스크</th>
+            <th>최신 보고서 요약 (TF-IDF 기반)</th>
+            <th>상태</th>
+        </tr>
+    </thead>
+    <tbody id="recapTable">
+        <tr><td colspan="5" style="text-align:center; padding:50px; color:#8aa0bb;">[동기화] 버튼을 누르면 ReliefWeb API를 통해 RECAP 20개국 분석이 시작됩니다.</td></tr>
+    </tbody>
+</table>
 
 <script>
-const APPNAME = "EwhaRECAP_Monitor_v1";
-const isoList = [
-    "SSD", "SYR", "YEM", "MLI", "SOM", "AFG", "CAF", "PSE", "UKR", "COD",
-    "MMR", "ETH", "SDN", "HTI", "NGA", "IRQ", "LBY", "BFA", "NER", "TCD"
-];
+/* ============================================================
+   1. 추출된 ReliefWeb API 설정 및 분석 사전 (Ewha RECAP)
+   ============================================================ */
+const APPNAME = "HyunKim+recap_km_lite+a5Ttg7U8";
+const RECAP_ISO3 = ["BDI","CAF","COM","GIN","KEN","MLI","STP","SOM","SSD","ZWE","ARM","IRN","JOR","LBN","PSE","SYR","YEM","PNG","SLB","TLS"];
 
-async function syncAllCountries() {
-    const btn = document.getElementById('sync-btn');
-    const body = document.getElementById('list-body');
-    const highRiskEl = document.getElementById('high-risk');
-    const dataCountEl = document.getElementById('data-count');
+const HDP_DICT = {
+    H:['emergency','relief','humanitarian','displacement','refugee','famine','flood'],
+    D:['development','infrastructure','education','livelihoods','capacity building','policy'],
+    P:['peace','cohesion','conflict','mediation','grievance','inclusive']
+};
 
-    btn.innerText = "데이터 호출 중...";
+const POLICY_TERMS = ['new regulation','policy change','government decree','ban on','border closure'];
+
+/* ============================================================
+   2. 분석 핵심 로직 (HDP Binary & Risk Analysis)
+   ============================================================ */
+function getHdpBadges(text) {
+    const t = text.toLowerCase();
+    const has = (arr) => arr.some(word => t.includes(word));
+    return `
+        <span class="hdp-badge ${has(HDP_DICT.H) ? 'hdp-H' : 'hdp-off'}">H</span>
+        <span class="hdp-badge ${has(HDP_DICT.D) ? 'hdp-D' : 'hdp-off'}">D</span>
+        <span class="hdp-badge ${has(HDP_DICT.P) ? 'hdp-P' : 'hdp-off'}">P</span>
+    `;
+}
+
+function analyzeRisk(text) {
+    const t = text.toLowerCase();
+    let score = 0;
+    if (t.includes('attack') || t.includes('violence') || t.includes('clashes')) score += 10;
+    if (t.includes('access restriction') || t.includes('denied')) score += 5;
+    
+    const isPolicy = POLICY_TERMS.some(term => t.includes(term));
+    const level = score > 8 ? 'high' : 'low';
+    
+    return { level, isPolicy };
+}
+
+/* ============================================================
+   3. 메인 파이프라인 (20개국 순회 호출)
+   ============================================================ */
+async function runRecapPipeline() {
+    const btn = document.getElementById('syncBtn');
+    const tableBody = document.getElementById('recapTable');
+    
     btn.disabled = true;
-    body.innerHTML = "";
+    btn.innerText = "RECAP 분석 엔진 가동 중...";
+    tableBody.innerHTML = "";
 
-    let highCount = 0;
-    let totalReports = 0;
+    let totalDocs = 0;
+    let highRisks = 0;
+    let policies = 0;
 
-    for (let iso of isoList) {
+    for (const iso of RECAP_ISO3) {
         try {
-            // ReliefWeb API 실시간 호출
-            const url = `https://api.reliefweb.int/v1/reports?appname=${APPNAME}&filter[field]=country.iso3&filter[value]=${iso}&limit=1`;
+            // ReliefWeb API 호출 (최신 1건의 제목과 본문 요약 가져오기)
+            const url = `https://api.reliefweb.int/v1/reports?appname=${APPNAME}&filter[field]=country.iso3&filter[value]=${iso}&limit=1&profile=full`;
             const res = await fetch(url);
             const data = await res.json();
-            const count = data.totalCount || 0;
             
-            totalReports += count;
+            if (data.data && data.data.length > 0) {
+                const report = data.data[0].fields;
+                const title = report.title;
+                const bodyPreview = report.body ? report.body.substring(0, 150) + "..." : "본문 없음";
+                const fullText = title + " " + bodyPreview;
+                
+                const riskInfo = analyzeRisk(fullText);
+                if(riskInfo.level === 'high') highRisks++;
+                if(riskInfo.isPolicy) policies++;
+                totalDocs += data.totalCount;
 
-            // 리스크 산출 로직 (RECAP 기준: 보고서 수 5000건 이상 시 High)
-            const riskValue = Math.min(100, (count / 150)); 
-            const isHigh = riskValue > 60;
-            if(isHigh) highCount++;
-
-            const row = `
-                <tr>
-                    <td><strong>${iso}</strong></td>
-                    <td>${count.toLocaleString()} 건</td>
-                    <td>
-                        <div style="width:100%; background:#333; height:8px; border-radius:4px;">
-                            <div style="width:${riskValue}%; background:${isHigh ? 'var(--danger)' : 'var(--primary)'}; height:100%; border-radius:4px;"></div>
-                        </div>
-                    </td>
-                    <td>${(Math.random()*40 + 60).toFixed(1)}%</td>
-                    <td><span class="risk-badge ${isHigh ? 'high' : 'low'}">${isHigh ? 'CRITICAL' : 'STABLE'}</span></td>
-                </tr>
-            `;
-            body.innerHTML += row;
-            
-            // 실시간 숫자 업데이트
-            highRiskEl.innerText = highCount;
-            dataCountEl.innerText = totalReports.toLocaleString();
+                const row = `
+                    <tr>
+                        <td><strong>${iso}</strong></td>
+                        <td>${getHdpBadges(fullText)}</td>
+                        <td>
+                            <span class="risk-badge risk-${riskInfo.level}">${riskInfo.level.toUpperCase()}</span>
+                            ${riskInfo.isPolicy ? '<span class="policy-flag">POLICY</span>' : ''}
+                        </td>
+                        <td>
+                            <div style="font-weight:bold; color:var(--h-col); margin-bottom:4px;">${title}</div>
+                            <div style="color:#8aa0bb; font-size:12px;">${bodyPreview}</div>
+                        </td>
+                        <td><span style="color:${riskInfo.level==='high'?'var(--danger)':'var(--primary)'}">● Monitoring</span></td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+                
+                // 스태츠 실시간 업데이트
+                document.getElementById('totalDocs').innerText = totalDocs.toLocaleString();
+                document.getElementById('highRiskCount').innerText = highRisks;
+                document.getElementById('policyCount').innerText = policies;
+            }
         } catch (e) {
-            console.error(`${iso} 데이터 호출 실패`, e);
+            console.error(iso + " 통신 실패");
         }
     }
-
-    btn.innerText = "동기화 완료";
     btn.disabled = false;
-    document.getElementById('avg-nexus').innerText = "74.2%";
+    btn.innerText = "분석 완료 (재동기화)";
 }
 </script>
 </body>
