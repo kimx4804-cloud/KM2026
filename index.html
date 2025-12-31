@@ -1,167 +1,193 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Global ODA M&E - Fragility Monitor</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>ODA Global Fragility Monitor v2.5</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --primary: #1e3a5f; /* 네이비: 신뢰와 안정 */
-            --accent: #3498db;  /* 블루: 데이터 시각화 */
-            --danger: #e74c3c;  /* 레드: 위험 및 분쟁 */
-            --bg: #f8f9fa;
+            --bg: #0b1016; --card: #161c24; --primary: #3aa3ff;
+            --danger: #ff5c5c; --warning: #f2b45a; --success: #61d661; --fg: #e6eef8;
         }
-
-        body { font-family: 'Malgun Gothic', 'Segoe UI', sans-serif; margin: 0; background: var(--bg); color: #333; }
-        header { background: var(--primary); color: white; padding: 2rem; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        
-        .selector-section { background: white; padding: 20px; text-align: center; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 100; }
-        select { padding: 12px 20px; width: 350px; border-radius: 30px; border: 2px solid var(--accent); font-size: 1rem; outline: none; transition: 0.3s; }
-        select:focus { box-shadow: 0 0 10px rgba(52, 152, 219, 0.5); }
-
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 25px; padding: 30px; max-width: 1400px; margin: auto; }
-        .card { background: white; border-radius: 15px; padding: 25px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); transition: transform 0.2s; }
-        .card:hover { transform: translateY(-5px); }
-        
-        h2 { font-size: 1.2rem; color: var(--primary); border-left: 5px solid var(--accent); padding-left: 15px; margin-top: 0; }
-        .data-info { font-size: 0.85rem; color: #7f8c8d; margin-bottom: 15px; }
-        
-        /* 뉴스 리스트 스타일 */
-        #newsList { list-style: none; padding: 0; }
-        #newsList li { padding: 12px 0; border-bottom: 1px solid #eee; }
-        #newsList li:last-child { border-bottom: none; }
-        #newsList a { text-decoration: none; color: #2c3e50; font-size: 0.95rem; font-weight: 500; }
-        #newsList a:hover { color: var(--accent); }
-
-        .loading-spinner { display: none; text-align: center; padding: 20px; font-weight: bold; color: var(--accent); }
+        body { font-family: 'Segoe UI', system-ui; background: var(--bg); color: var(--fg); margin: 0; padding: 20px; }
+        header { text-align: center; padding: 20px 0; border-bottom: 1px solid #253245; }
+        .control-panel { background: var(--card); padding: 20px; border-radius: 15px; margin: 20px 0; display: flex; gap: 15px; justify-content: center; align-items: center; flex-wrap: wrap; }
+        select, input { padding: 10px; border-radius: 8px; border: 1px solid #364254; background: #0b0f14; color: white; }
+        button { padding: 10px 20px; border-radius: 8px; border: none; background: var(--primary); color: white; cursor: pointer; font-weight: bold; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
+        .card { background: var(--card); border-radius: 15px; padding: 20px; border: 1px solid #253245; }
+        .status { font-size: 13px; color: var(--primary); margin-top: 10px; text-align: center; }
+        ul { list-style: none; padding: 0; font-size: 14px; }
+        li { padding: 10px 0; border-bottom: 1px solid #253245; }
+        a { color: var(--primary); text-decoration: none; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: bold; margin-right: 5px; }
+        .risk-high { background: var(--danger); color: black; }
+        .conf-heat { background: var(--warning); color: black; }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>Fragile States ODA M&E System</h1>
-    <p>국제기구 오픈 데이터를 활용한 20개 취약국 실시간 모니터링</p>
+    <h2>Global Fragility Monitor (ReliefWeb 실시간 통합)</h2>
+    <p style="color:#8aa0bb; font-size:14px;">국제기구 데이터를 분석하여 HDP 넥서스 및 분쟁 위험 지표를 산출합니다.</p>
 </header>
 
-<div class="selector-section">
-    <select id="countrySelect" onchange="refreshDashboard()">
-        <option value="">-- 모니터링 국가 선택 (20개국) --</option>
-        <optgroup label="Africa">
-            <option value="Burundi" data-iso="BDI">부룬디 (Burundi)</option>
-            <option value="Central African Republic" data-iso="CAF">중앙아프리카공화국 (CAR)</option>
-            <option value="Comoros" data-iso="COM">코모로 (Comoros)</option>
-            <option value="Guinea" data-iso="GIN">기니 (Guinea)</option>
-            <option value="Kenya" data-iso="KEN">케냐 (Kenya)</option>
-            <option value="Mali" data-iso="MLI">말리 (Mali)</option>
-            <option value="Sao Tome and Principe" data-iso="STP">상투메 프린시페 (STP)</option>
-            <option value="Somalia" data-iso="SOM">소말리아 (Somalia)</option>
-            <option value="South Sudan" data-iso="SSD">남수단 (South Sudan)</option>
-            <option value="Zimbabwe" data-iso="ZWE">짐바브웨 (Zimbabwe)</option>
-        </optgroup>
-        <optgroup label="Middle East & Eurasia">
-            <option value="Armenia" data-iso="ARM">아르메니아 (Armenia)</option>
-            <option value="Iran" data-iso="IRN">이란 (Iran)</option>
-            <option value="Jordan" data-iso="JOR">요르단 (Jordan)</option>
-            <option value="Lebanon" data-iso="LBN">레바논 (Lebanon)</option>
-            <option value="Palestine" data-iso="PSE">팔레스타인 (Palestine)</option>
-            <option value="Syria" data-iso="SYR">시리아 (Syria)</option>
-            <option value="Yemen" data-iso="YEM">예멘 (Yemen)</option>
-        </optgroup>
-        <optgroup label="Oceania & SE Asia">
-            <option value="Papua New Guinea" data-iso="PNG">파푸아뉴기니 (PNG)</option>
-            <option value="Solomon Islands" data-iso="SLB">솔로몬제도 (Solomon Islands)</option>
-            <option value="Timor-Leste" data-iso="TLS">동티모르 (Timor-Leste)</option>
-        </optgroup>
-    </select>
+<div class="control-panel">
+    <select id="countrySelect">
+        <option value="South Sudan" data-iso="SSD">South Sudan (남수단)</option>
+        <option value="Syria" data-iso="SYR">Syria (시리아)</option>
+        <option value="Yemen" data-iso="YEM">Yemen (예멘)</option>
+        <option value="Ukraine" data-iso="UKR">Ukraine (우크라이나)</option>
+        <option value="Mali" data-iso="MLI">Mali (말리)</option>
+        <option value="Somalia" data-iso="SOM">Somalia (소말리아)</option>
+        <option value="Palestine" data-iso="PSE">Palestine (팔레스타인)</option>
+        </select>
+    <label>분석 기간(일): </label><input id="rw-days" type="number" value="180" style="width:70px">
+    <button id="fetch-btn">실시간 분석 시작</button>
 </div>
 
-<div id="loading" class="loading-spinner">데이터를 불러오는 중입니다...</div>
+<div id="status-msg" class="status">국가를 선택하고 분석 버튼을 눌러주세요.</div>
 
-<div class="dashboard-grid">
+<div class="grid">
     <div class="card">
-        <h2>Economic Fragility Trend</h2>
-        <p class="data-info">최근 5년간 GDP 성장률 (Source: World Bank)</p>
-        <canvas id="growthChart"></canvas>
+        <h3>Conflict Heat & Risk Score</h3>
+        <canvas id="riskChart"></canvas>
     </div>
-
     <div class="card">
-        <h2>Latest Conflict & Humanitarian Alerts</h2>
-        <p class="data-info">해당 국가 최신 상황 보고서 (Source: ReliefWeb)</p>
-        <ul id="newsList">
-            <li style="color: #95a5a6;">국가를 선택하면 실시간 리포트가 표시됩니다.</li>
-        </ul>
+        <h3>HDP Nexus Analysis</h3>
+        <canvas id="hdpChart"></canvas>
+    </div>
+    <div class="card" style="grid-column: 1 / -1;">
+        <h3>Latest Analyzed Reports</h3>
+        <ul id="newsList"></ul>
     </div>
 </div>
 
 <script>
-    let growthChart;
+/* =============================
+   1. 분석 핵심 로직 (recap v2.2 계승)
+============================= */
+const APPNAME = "HyunKim+recap_km_lite+a5Ttg7U8";
+const HDP_DICT = {
+    H:['emergency','relief','humanitarian','refugee','famine','outbreak'],
+    D:['development','education','clinic','livelihoods','infrastructure'],
+    P:['peace','mediation','inclusive','social contract','cohesion']
+};
+const CONFLICT_TERMS = ['armed clashes','shelling','airstrike','violence','attack','hostilities'];
 
-    async function refreshDashboard() {
-        const select = document.getElementById('countrySelect');
-        const iso = select.options[select.selectedIndex].getAttribute('data-iso');
-        const countryName = select.value;
-        
-        if (!iso) return;
+function analyzeText(text) {
+    const T = text.toLowerCase();
+    // HDP Score
+    const h = HDP_DICT.H.some(w => T.includes(w)) ? 1 : 0;
+    const d = HDP_DICT.D.some(w => T.includes(w)) ? 1 : 0;
+    const p = HDP_DICT.P.some(w => T.includes(w)) ? 1 : 0;
+    
+    // Conflict Heat (1-5)
+    let cScore = 0;
+    CONFLICT_TERMS.forEach(w => { if(T.includes(w)) cScore++; });
+    const heat = Math.min(5, Math.max(1, cScore));
 
-        document.getElementById('loading').style.display = 'block';
+    // Risk Score
+    let rScore = (T.match(/security|danger|threat|kill|attack/g) || []).length * 2;
+    
+    return { h, d, p, heat, rScore };
+}
 
-        // 1. World Bank API 호출 (GDP 성장률)
-        try {
-            const wbUrl = `https://api.worldbank.org/v2/country/${iso}/indicator/NY.GDP.MKTP.KD.ZG?format=json&per_page=5`;
-            const wbRes = await fetch(wbUrl);
-            const wbData = await wbRes.json();
+/* =============================
+   2. 차트 초기화
+============================= */
+let riskChart, hdpChart;
+function initCharts() {
+    const ctxR = document.getElementById('riskChart').getContext('2d');
+    riskChart = new Chart(ctxR, {
+        type: 'line',
+        data: { labels: [], datasets: [
+            { label: 'Risk Score', data: [], borderColor: '#ff5c5c', fill: false },
+            { label: 'Conflict Heat', data: [], borderColor: '#f2b45a', fill: false }
+        ]}
+    });
+
+    const ctxH = document.getElementById('hdpChart').getContext('2d');
+    hdpChart = new Chart(ctxH, {
+        type: 'bar',
+        data: { labels: ['Humanitarian', 'Development', 'Peace'], datasets: [{
+            label: 'Nexus Hits', data: [0, 0, 0], backgroundColor: ['#3aa3ff', '#61d661', '#f2b45a']
+        }]}
+    });
+}
+
+/* =============================
+   3. ReliefWeb 데이터 Fetch
+============================= */
+document.getElementById('fetch-btn').onclick = async function() {
+    const select = document.getElementById('countrySelect');
+    const iso = select.options[select.selectedIndex].getAttribute('data-iso');
+    const countryName = select.value;
+    const days = document.getElementById('rw-days').value;
+    const status = document.getElementById('status-msg');
+
+    status.textContent = `${countryName} 데이터를 분석 중입니다...`;
+    
+    const dateLimit = new Date();
+    dateLimit.setDate(dateLimit.getDate() - days);
+    const dateStr = dateLimit.toISOString().split('T')[0];
+
+    const url = "https://api.reliefweb.int/v1/reports?appname=" + APPNAME;
+    const query = {
+        "filter": {
+            "operator": "AND",
+            "conditions": [
+                { "field": "country.iso3", "value": iso },
+                { "field": "date.created", "value": { "from": dateStr + "T00:00:00+00:00" } }
+            ]
+        },
+        "limit": 10, "preset": "latest", "fields": { "include": ["title", "body", "url", "date"] }
+    };
+
+    try {
+        const res = await fetch(url, { method: 'POST', body: JSON.stringify(query) });
+        const json = await res.json();
+        if(!json.data) throw new Error("최신 데이터가 없습니다.");
+
+        let hSum = 0, dSum = 0, pSum = 0;
+        let riskData = [], heatData = [], labels = [];
+        let html = "";
+
+        json.data.forEach((item, idx) => {
+            const f = item.fields;
+            const analysis = analyzeText(f.title + " " + (f.body || ""));
             
-            if (wbData[1]) {
-                const labels = wbData[1].map(item => item.date).reverse();
-                const values = wbData[1].map(item => item.value).reverse();
-                drawChart(labels, values);
-            }
-        } catch (e) { console.error("World Bank API Error", e); }
+            hSum += analysis.h; dSum += analysis.d; pSum += analysis.p;
+            riskData.push(analysis.rScore);
+            heatData.push(analysis.heat);
+            labels.push(f.date.created.split('T')[0]);
 
-        // 2. ReliefWeb API 호출 (최신 5건 보고서)
-        try {
-            const rwUrl = `https://api.reliefweb.int/v1/reports?appname=oda_monitor&filter[field]=country&filter[value]=${countryName}&limit=5&sort[]=date:desc`;
-            const rwRes = await fetch(rwUrl);
-            const rwData = await rwRes.json();
-            
-            const newsHtml = rwData.data.map(item => 
-                `<li><a href="${item.fields.url}" target="_blank">📌 ${item.fields.title}</a></li>`
-            ).join('');
-            document.getElementById('newsList').innerHTML = newsHtml || "<li>최근 보고서가 없습니다.</li>";
-        } catch (e) { console.error("ReliefWeb API Error", e); }
-
-        document.getElementById('loading').style.display = 'none';
-    }
-
-    function drawChart(labels, values) {
-        const ctx = document.getElementById('growthChart').getContext('2d');
-        if (growthChart) growthChart.destroy();
-
-        growthChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Annual GDP Growth (%)',
-                    data: values,
-                    backgroundColor: values.map(v => v < 0 ? '#e74c3c' : '#3498db'),
-                    borderRadius: 5
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: '#ecf0f1' }
-                    },
-                    x: { grid: { display: false } }
-                }
-            }
+            html += `<li>
+                <span class="badge risk-high">Risk ${analysis.rScore}</span>
+                <span class="badge conf-heat">Heat ${analysis.heat}</span>
+                <a href="${f.url}" target="_blank">${f.title}</a>
+            </li>`;
         });
-    }
-</script>
 
+        // 차트 업데이트
+        riskChart.data.labels = labels.reverse();
+        riskChart.data.datasets[0].data = riskData.reverse();
+        riskChart.data.datasets[1].data = heatData.reverse();
+        riskChart.update();
+
+        hdpChart.data.datasets[0].data = [hSum, dSum, pSum];
+        hdpChart.update();
+
+        document.getElementById('newsList').innerHTML = html;
+        status.textContent = `${countryName} 분석 완료 (문서 ${json.data.length}건 수집)`;
+
+    } catch (e) {
+        status.textContent = "에러: " + e.message;
+    }
+};
+
+window.onload = initCharts;
+</script>
 </body>
 </html>
