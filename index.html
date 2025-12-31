@@ -1,24 +1,46 @@
-/* 통신 성공률을 높인 강화된 fetch 로직 */
-async function fetchReliefWeb(iso, days, limit) {
-    // 1. 보안을 위해 appname을 일반적인 테스트용으로도 시도
-    const testAppName = "ewha_recap_v2_fix"; 
-    const dateLimit = new Date();
-    dateLimit.setDate(dateLimit.getDate() - days);
-    const dateStr = dateLimit.toISOString().split('T')[0];
+// 1. 기존 코드의 rw-fetch 클릭 이벤트를 아래와 같이 교체하세요.
+document.getElementById('rw-fetch').onclick = async function() {
+    const status = document.getElementById('rw-status');
+    const days = document.getElementById('rw-days').value;
+    const limit = document.getElementById('rw-limit').value;
+    
+    status.textContent = "데이터 수집 중...";
+    currentItems = []; // 초기화
 
-    // 2. 최신 API v1 엔드포인트 사용 (v2보다 안정적일 때가 있음)
-    const url = `https://api.reliefweb.int/v1/reports?appname=${testAppName}&filter[operator]=AND&filter[conditions][0][field]=country.iso3&filter[conditions][0][value]=${iso}&filter[conditions][1][field]=date.created&filter[conditions][1][value][from]=${dateStr}T00:00:00%2B00:00&limit=${limit}&profile=full`;
+    // 선택된 국가가 없으면 전체 20개국 진행
+    const targets = pickedISO3.length ? pickedISO3 : RECAP_ISO3;
 
-    try {
-        const response = await fetch(url, {
-            method: 'GET',
-            mode: 'cors', // CORS 명시
-            headers: { 'Accept': 'application/json' }
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return await response.json();
-    } catch (e) {
-        console.error(`${iso} 수집 실패:`, e);
-        return null;
+    for (const iso of targets) {
+        status.textContent = `${iso} 분석 중...`;
+        const data = await fetchReliefWeb(iso, days, limit); // 작성하신 강화된 로직 호출
+        
+        if (data && data.data) {
+            // 데이터 파싱 로직 (원본 코드의 data.data.forEach 부분 유지)
+            data.data.forEach(item => {
+                const f = item.fields;
+                const fullText = (f.title + " " + (f.body || ""));
+                
+                // 원본 코드의 핵심: HDP, Risk, C15 분석 함수들 연결
+                const hdp = hdpScore(fullText);
+                const risk = analyzeRiskAndConflict(fullText);
+                const c15 = classifyC15(fullText, 3);
+
+                currentItems.push({
+                    id: item.id,
+                    title: f.title,
+                    country: iso,
+                    created: f.date.created,
+                    hdp: hdp,
+                    risk: risk,
+                    c15: c15,
+                    url: f.url,
+                    source: f.source[0].name
+                });
+            });
+        }
     }
-}
+    
+    status.textContent = "수집 완료!";
+    renderDashboardTiles(); // 대시보드 갱신
+    renderResultsTable();   // 테이블 갱신
+};
